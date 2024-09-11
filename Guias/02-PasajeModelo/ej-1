@@ -1,0 +1,11 @@
+Ej a)
+Relationship                |   Candidate Key             |   Primary Key       |   Foreign Key
+A(idA, A1, A2)              | {{idA}}                     
+C(idC, C1, C2)              | {{idC}}
+B(B1, discB, idA, E1, E2)   | {{discB, idA}}              | {discB, idA}        | {{idA} ref A}
+F(idD1, discB, idA, idD2)   | {{idD1, discB, idA}}        | {idD1, discB, idA}  | {{idD1}, {discB, idA} ref B, {idD2}}
+I(idD1, idD2)               | {{idD1};{idD2}}             | {idD1}              | {{idD1};{idD2}}
+
+
+G(idA, idC)                 | {{idA, idC}}                | {idA, idC}          | {{idA} ref A, {idC} ref C}
+H(idA1, discB, idA2, H1)    | {{idA1}}                    | {idA}               | {{idA1} ref A, {idA2, discB} ref B}
