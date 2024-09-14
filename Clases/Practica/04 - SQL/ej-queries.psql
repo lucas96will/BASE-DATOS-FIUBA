@@ -1,0 +1,315 @@
+-- 1 Devuelva todos los datos de las notas que no sean de la materia 75.1.
+
+select * from notas n 
+where not (codigo = 75 and numero = 1)
+
+SELECT * FROM notas
+WHERE (codigo <> 75 or numero <> 1)
+
+SELECT * FROM notas WHERE NOT ((codigo=75) AND (numero=1));
+
+
+-- 2 Devuelva para cada materia dos columnas: una llamada “codigo” que contenga una concatenaci´on del c´odigo de departamento, un punto y el n´umero de materia, con el formato
+-- “XX.YY” (ambos valores con dos d´ıgitos, agregando ceros a la izquierda en caso de ser
+-- necesario) y otra con el nombre de la materia.
+
+select to_char(codigo, 'fm00') || '.' || to_char(numero, 'fm00') as CodigoMateria
+FROM materias;
+
+SELECT
+CONCAT(
+    LPAD(codigo::text, 2, '0'),
+    '.',
+    LPAD(numero::text, 2, '0')
+) as codigo, nombre
+FROM materias;
+
+
+-- 3 Para cada nota registrada, devuelva el padr´on, c´odigo de departamento, n´umero de materia,
+-- fecha y nota expresada como un valor entre 1 y 100.
+
+SELECT padron, codigo, numero, fecha, nota * 10 as nota
+FROM notas;
+
+-- 4
+-- ´Idem al anterior pero mostrando los resultados paginados en p´aginas de 5 resultados cada
+-- una, devolviendo la segunda p´agina.
+
+SELECT padron, codigo, numero, fecha, nota * 10 as nota
+FROM notas
+-- con paginado desde la segunda pagina
+ORDER BY padron, codigo, numero, fecha
+OFFSET 5 FETCH FIRST 5 ROWS ONLY;
+
+
+SELECT padron, codigo, numero, fecha, nota * 10 as nota
+FROM notas
+-- con paginado desde la segunda pagina
+ORDER BY padron, codigo, numero, fecha
+LIMIT 5 OFFSET 5;
+
+-- 5 Ejecute una consulta SQL que devuelva el padr´on y nombre de los alumnos cuyo apellido
+-- es “Molina”.
+
+SELECT padron, nombre, apellido
+FROM alumnos
+WHERE lower(apellido) = lower('mOlina');
+
+-- Con ILIKE (no usa indices)
+SELECT padron, nombre, apellido
+FROM alumnos
+WHERE apellido ILIKE '%a';
+
+
+-- 6 Obtener el padr´on de los alumnos que ingresaron a la facultad en el a˜no 2010.
+-- Parte B: Funciones de agregacion´
+
+
+--usando between
+SELECT padron, nombre, apellido, fecha_ingreso
+FROM alumnos a
+WHERE a.fecha_ingreso between '2010-01-01' AND '2010-12-31';
+
+--usando <= o >=
+SELECT padron, nombre apellido, fecha_ingreso
+FROM alumnos 
+WHERE fecha_ingreso >= '2010-01-01' AND fecha_ingreso <= '2010-12-31';
+
+
+-- sacando la fecha del anio
+SELECT padron, nombre, apellido, fecha_ingreso
+FROM alumnos 
+WHERE EXTRACT(YEAR FROM fecha_ingreso) = '2010';
+
+
+-- 7 Obtener la mejor nota registrada en la materia 75.15.
+
+select MAX(n.nota) as MejorNota
+from notas n
+where n.codigo = 75 and n.numero = 15;
+
+
+
+-- 8 Obtener el promedio de notas de las materias del departamento de c´odigo 75.
+
+select AVG(n.nota) as Promedio
+from notas n
+where n.codigo = 75;
+
+
+-- 9 Obtener el promedio de nota de aprobaci´on de las materias del departamento de c´odigo 75.
+
+select AVG(n.nota) as PromedioAprobador
+from notas n 
+where codigo = 75 and nota >= 4;
+
+
+
+-- 10 ✆Obtener la cantidad de alumnos que tienen al menos una nota.
+
+select COUNT(distinct padron)
+from notas;
+
+
+-- Parte C: Operadores de conjunto
+
+
+
+-- 11 ✆Devolver los padrones de los alumnos que no registran nota en materias.
+
+
+select padron 
+from alumnos a
+EXCEPT 
+select padron 
+from notas n 
+
+-- opcion de subquery con IN
+select * from alumnos a where a.padron not in (select padron from notas);
+
+-- 12 ✆Con el objetivo de traducir a otro idioma los nombres de materias y departamentos, devolver
+-- en una ´unica consulta los nombres de todas las materias y de todos los departamentos.
+-- Parte D: Joins
+
+
+select d.nombre from departamentos d 
+UNION
+select m.nombre from materias m
+
+
+-- se repite computacion porque el all se fija en mismo nombre de materia y departamento
+-- por defecto el union lleva un [DISTINCT]
+select m.nombre from materias m
+UNION ALL
+select d.nombre from departamentos d
+
+-- opcion de subquery con IN
+
+select * from alumnos where alumnos.padron not in (select padron from notas);
+
+-- con el using, no devuelve el mismo atributo de mismo nombre, se da cuenta antes
+select a.*
+from alumnos a 
+left join notas n using (padron) -- on a.padron = n.padron
+where n.padron is null
+
+-- 13 ✆Devolver para cada materia su nombre y el nombre del departamento.
+
+select m.nombre, d.nombre 
+from materias m 
+inner join departamentos d using(codigo);
+
+-- con natural join (riesgoso)
+-- un cambio en la tabla, puede alterar el resultado de la query
+select *
+from materias m 
+natural join departamentos d 
+
+
+-- join que no recibe parametros o condiciones
+select * 
+from materias m  
+cross join departamentos d;
+
+select * 
+from materias m, departamentos d  
+-- condiciones para emular un join 
+where m.codigo = d.codigo 
+
+-- con condicion en el on
+select m.nombre, d.nombre 
+from materias m  
+-- aclarar donde vienen los codigos
+-- join departamentos d ON codigo = d.codigo
+join departamentos d ON m.codigo = d.codigo 
+
+
+-- 14 ✆Para cada 10 registrado, devuelva el padron y nombre del alumno y el nombre de la materia
+-- correspondientes a dicha nota.
+
+select a.padron, a.nombre, a.apellido, d.nombre as departamento, m.nombre as materia, n.nota
+from alumnos a 
+inner join notas n using (padron)
+inner join materias m using(codigo, numero)
+inner join departamentos d using(codigo)
+where n.nota = 10
+-- un poquito mas eficiente
+-- inner join notas n on a.padron = n.padron and n.notas = 10
+-- left join materias m using(codigo, numero)
+
+
+select a.padron, a.nombre, a.apellido, m.nombre as materia, n.nota
+from alumnos a 
+inner join notas n on a.padron = n.padron and n.nota >= 4
+left join materias m using(codigo, numero)
+
+
+-- el where se aplica despues del join, aca no. Por eso te trae los nulls esta query
+select n.nota, a.padron
+from alumnos a 
+left join notas n on a.padron = n.padron and n.nota = 10
+
+-- con subconsulta
+select nota, padron, m.nombre 
+from (
+    select nombre, nota, codigo, numero, a.padron
+    from notas n 
+    inner join alumnos a on a.padron = n.padron
+) as alumnos_con_nota
+inner join materias m using(codigo, numero)
+where nota = 10
+
+select a.padron, m.nombre, nota
+from alumnos a 
+inner join (
+    select * from notas where nota in (10)
+) notas_10 on a.padron = notas_10.padron
+inner join materias m using (codigo, numero)
+
+-- 15 ✆Listar para cada carrera su nombre y el padr´on de los alumnos que est´en anotados en ella.
+-- Incluir tambi´en las carreras sin alumnos inscriptos.
+
+
+
+
+
+-- 16 ✆Listar para cada carrera su nombre y el padron de los alumnos con padron mayor a 75000
+-- que est´en anotados en ella. Incluir tambi´en las carreras sin alumnos inscriptos con padr´on
+-- mayor a 75000.
+
+
+
+-- 17 ✆Listar el padr´on de aquellos alumnos que tengan m´as de una nota en la materia 75.15.
+
+
+
+-- 18 ✆Obtenga el padr´on y nombre de los alumnos que aprobaron la materia 71.14 y no aprobaron
+-- la materia 71.15
+
+select padron
+from notas n
+where nota >= 4 and codigo = 71 and numero = 14
+intersect 
+select a.padron
+from alumnos a 
+left join notas n on a.padron = n.padron
+where (nota < 4 and codigo = 71 and numero = 15) or n.padron is null
+
+
+select a.padron
+from alumnos a 
+left join notas n on a.padron = n.padron
+where ((nota < 4 and codigo = 71 and numero = 15) or n.padron is null
+        and exists (
+            select padron
+            from notas n2
+            where (nota >= 4 and codigo = 71 and numero = 14)
+                and n2.padron = n.padron
+        )
+    )   
+
+select a.padron
+from alumnos a 
+left join notas n on a.padron = n.padron
+where ((nota < 4 and codigo = 71 and numero = 15) or n.padron is null
+        and n.padron in (
+            select padron
+            from notas n2
+            where (nota >= 4 and codigo = 71 and numero = 14)
+        )
+    ) 
+
+select a.padron
+from alumnos a
+left join notas n using(padron)
+inner join (
+    select padron
+    from notas
+    where (nota >= 4 and codigo = 71 and numero = 14)
+) aprobados_71_14 using(padron)
+where ((nota < 4 and codigo = 71 and numero = 15) or n.padron is null)
+
+-- 19 ✆Obtener, sin repeticiones, todos los pares de padrones de alumnos tales que ambos alumnos
+-- rindieron la misma materia el mismo d´ıa. Devuelva tambi´en la fecha y el c´odigo y n´umero
+-- de la materia
+
+
+-- Parte E: Agrupamiento
+
+-- 20 ✆Para cada departamento, devuelva su c´odigo, nombre, la cantidad de materias que tiene y la
+-- cantidad total de notas registradas en materias del departamento. Ordene por la cantidad
+-- de materias descendente.
+
+-- 21 ✆Para cada carrera devuelva su nombre y la cantidad de alumnos inscriptos. Incluya las
+-- carreras sin alumnos.
+
+-- 22 ✆Para cada alumno con al menos tres notas, devuelva su padr´on, nombre, promedio de notas
+-- y mejor nota registrada.
+-- Parte F: Consultas avanzadas
+
+-- 23 ✆Obtener el c´odigo y n´umero de la o las materias con mayor cantidad de notas registradas.
+
+-- 24 ✆Obtener el padr´on de los alumnos que tienen nota en todas las materias.
+
+-- 25 ✆Obtener el promedio general de notas por alumno (cuantas notas tiene en promedio un
+-- alumno), considerando ´unicamente alumnos con al menos una nota
