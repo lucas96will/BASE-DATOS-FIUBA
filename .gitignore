@@ -15,6 +15,10 @@
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
+# pgadmin and docker data
+data/postgres/
+pgadmin_backup/
+
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
@@ -23,7 +27,14 @@ go.work
 go.work.sum
 
 # env file
+*.env
+**/*.env
+docker-postgres/.env
 .env
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
 
 # General
 .DS_Store
